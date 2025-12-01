@@ -430,3 +430,5 @@ FodyWeavers.xsd
 
 
 CMakePresets.json
+inputs/
+settings.json
