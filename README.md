@@ -7,5 +7,6 @@ This repository contains my solutions for [Advent of Code 2025](https://adventof
 | Day   | Part 1 | Part 2 |
 |-------|--------|--------|
 | 1     | ✅     | ✅     |
-| 2 - 12| ❌     | ❌     |
+| 2     | ✅     | ✅     |
+| 3 - 12| ❌     | ❌     |
 

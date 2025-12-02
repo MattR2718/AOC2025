@@ -12,4 +12,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ctre)
 
 
-add_subdirectory(day1)
+# Copy the inputs directory to the build folder
+add_custom_target(copy_resources ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/inputs
+            ${CMAKE_BINARY_DIR}/inputs
+)
+
+message(${CMAKE_SOURCE_DIR})
+message(${CMAKE_BINARY_DIR})
+
+#add_subdirectory(day1)
+add_subdirectory(day2)
