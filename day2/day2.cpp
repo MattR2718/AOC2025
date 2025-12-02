@@ -29,28 +29,28 @@ auto parse_input(){
 }
 
 std::uint64_t p1(const auto& ranges){
-    return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){
-        auto v = std::views::iota(r.from, r.to + 1) 
-                    | std::views::filter([](std::uint64_t x){ 
+    return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){ // Iterate over all pairs of boundaries
+        auto v = std::views::iota(r.from, r.to + 1)             // Create range of numbers
+                    | std::views::filter([](std::uint64_t x){   // Filter based on whether the first half is the same as the second half
                         int nd = std::ceil(std::log10(x));
                         return (x / std::uint64_t(std::pow(10, nd / 2))) == (x % std::uint64_t(std::pow(10, nd / 2)));
                     });
-        return std::ranges::fold_left(v, acc, std::plus{});
+        return std::ranges::fold_left(v, acc, std::plus{}); // Sum up filtered range
     });
 }
 
 std::uint64_t p2(const auto& ranges){
-    return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){
-        auto v = std::views::iota(r.from, r.to + 1) 
-                    | std::views::filter([](std::uint64_t x){
-                        int nd = (x == 0) ? 1 : static_cast<int>(std::floor(std::log10(x))) + 1;
-                        auto digits = std::views::iota(0, nd)
+    return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){ // Iterate over all pairs of boundaries
+        auto v = std::views::iota(r.from, r.to + 1)     // Create range of numbers
+                    | std::views::filter([](std::uint64_t x){   // Filter based on whether the number is made of repeating components
+                        int nd = (x == 0) ? 1 : static_cast<int>(std::floor(std::log10(x))) + 1;    // Get number of digits
+                        auto digits = std::views::iota(0, nd)                       // Convert number into a range, e.g. 123 -> {1, 2, 3}
                                     | std::views::transform([=](int i){
                                         int pow = 1;
                                         for(int k = 0; k < nd - i - 1; k++){ pow *= 10; }
                                         return (x / pow) % 10;
                                     });
-                        return std::ranges::any_of(std::views::iota(1, nd), 
+                        return std::ranges::any_of(std::views::iota(1, nd), // Check if any possible length of chunk produces an invalid id
                                                     [nd, digits](int chunk_size){
                                                         if(nd % chunk_size != 0){ return false; }
                                                         auto chunks = digits | std::views::chunk(chunk_size);
@@ -59,7 +59,7 @@ std::uint64_t p2(const auto& ranges){
                                                         });
                                                     });
                     });
-        return std::ranges::fold_left(v, acc, std::plus{});
+        return std::ranges::fold_left(v, acc, std::plus{}); // Sum up all invalid ids
     });
 }
 
