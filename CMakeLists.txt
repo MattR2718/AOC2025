@@ -22,5 +22,8 @@ add_custom_target(copy_resources ALL
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_BINARY_DIR})
 
+include_directories(${PROJECT_SOURCE_DIR}/utils)
+
 #add_subdirectory(day1)
 add_subdirectory(day2)
+add_subdirectory(day3)

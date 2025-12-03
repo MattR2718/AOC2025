@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include <timer.h>
+
 struct range{
     std::uint64_t from;
     std::uint64_t to;
@@ -29,6 +31,7 @@ auto parse_input(){
 }
 
 std::uint64_t p1(const auto& ranges){
+    Timer::ScopedTimer t("Part 1");
     return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){ // Iterate over all pairs of boundaries
         auto v = std::views::iota(r.from, r.to + 1)             // Create range of numbers
                     | std::views::filter([](std::uint64_t x){   // Filter based on whether the first half is the same as the second half
@@ -40,6 +43,8 @@ std::uint64_t p1(const auto& ranges){
 }
 
 std::uint64_t p2(const auto& ranges){
+    Timer::ScopedTimer t("Part 2");
+
     return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){ // Iterate over all pairs of boundaries
         auto v = std::views::iota(r.from, r.to + 1)     // Create range of numbers
                     | std::views::filter([](std::uint64_t x){   // Filter based on whether the number is made of repeating components
@@ -58,6 +63,28 @@ std::uint64_t p2(const auto& ranges){
                                                             return std::ranges::equal(c, *chunks.begin());
                                                         });
                                                     });
+                    });
+        return std::ranges::fold_left(v, acc, std::plus{}); // Sum up all invalid ids
+    });
+}
+
+std::uint64_t p2_2(const auto& ranges){
+    Timer::ScopedTimer t("Part 2");
+
+    return std::ranges::fold_left(ranges, 0Ull, [](auto acc, const auto r){ // Iterate over all pairs of boundaries
+        auto v = std::views::iota(r.from, r.to + 1)     // Create range of numbers
+                    | std::views::filter([](std::uint64_t x){   // Filter based on whether the number is made of repeating components
+                        int nd = (x == 0) ? 1 : static_cast<int>(std::floor(std::log10(x))) + 1;    // Get number of digits
+                        for(int k = 0; k < (nd / 2) + 1; k++){
+                            if(nd % k == 0){
+                                int mask = (int(std::pow(10, nd)) - 1) / (int(std::pow(10, k)) - 1);
+
+                                if(x % mask == 0){
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
                     });
         return std::ranges::fold_left(v, acc, std::plus{}); // Sum up all invalid ids
     });
