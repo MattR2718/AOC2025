@@ -65,15 +65,17 @@ auto parse_input(){
 }
 
 auto p1(auto input){
-    auto pairs = std::views::cartesian_product(std::views::iota(0, (int)input.rows), std::views::iota(0, (int)input.cols));
+    Timer::ScopedTimer _t("Part 1");
+
+    auto pairs = std::views::cartesian_product(std::views::iota(0, (int)input.rows), std::views::iota(0, (int)input.cols)) | std::views::filter([&](auto p){return input(std::get<1>(p), std::get<0>(p)) == '@';});
 
     auto neigh = std::views::cartesian_product(std::views::iota(-1, 2), std::views::iota(-1, 2)) | std::views::filter([](auto p){ return std::get<0>(p) || std::get<1>(p); });
 
     return std::ranges::count_if(pairs, [&](auto p){
-        return input(std::get<1>(p), std::get<0>(p)) == '@' && std::ranges::count_if(neigh, [&](auto n){
+        return std::ranges::count_if(neigh, [&](auto n){
             int x = std::get<0>(p) + std::get<0>(n);
             int y = std::get<1>(p) + std::get<1>(n);
-            if(x < 0 || x >= input.cols || y < 0 || y >= input.rows){ return false; }
+            if(x < 0 || x >= (int)input.cols || y < 0 || y >= (int)input.rows){ return false; }
             if(input(y, x) == '@'){ return true; }
             return false;
         }) < 4;
@@ -82,12 +84,34 @@ auto p1(auto input){
 }
 
 auto p2(auto input){
-    return -1;
+    Timer::ScopedTimer _t("Part 2");
+
+    auto pairs = std::views::cartesian_product(std::views::iota(0, (int)input.rows), std::views::iota(0, (int)input.cols)) | std::views::filter([&](auto p){return input(std::get<1>(p), std::get<0>(p)) == '@';});
+    auto neigh = std::views::cartesian_product(std::views::iota(-1, 2), std::views::iota(-1, 2)) | std::views::filter([](auto p){ return std::get<0>(p) || std::get<1>(p); });
+
+    int num = std::ranges::count(input.data, '@');
+    int sn = num;
+
+    do{
+        auto ps = std::views::filter(pairs, [&](auto p){
+            return input(std::get<1>(p), std::get<0>(p)) == '@' && std::ranges::count_if(neigh, [&](auto n){
+                int x = std::get<0>(p) + std::get<0>(n);
+                int y = std::get<1>(p) + std::get<1>(n);
+                if(x < 0 || x >= (int)input.cols || y < 0 || y >= (int)input.rows){ return false; }
+                if(input(y, x) == '@'){ return true; }
+                return false;
+            }) < 4;
+        });
+        std::ranges::for_each(ps, [&](auto p){input(std::get<1>(p), std::get<0>(p)) = '.';});
+        num = std::ranges::distance(ps);
+    }while(num);
+
+
+    return sn - std::ranges::count(input.data, '@');
 }
 
 int main(){
     auto input = parse_input();
-    input.print();
     std::println("Part 1: {}", p1(input));
     std::println("Part 2: {}", p2(input));
 }
