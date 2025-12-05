@@ -104,25 +104,20 @@ static constexpr std::string_view input_sv = _input;
 
 auto p1(auto input){
     Timer::ScopedTimer _t("Part 1");
-
     auto in_range = [&input](uint64_t v){
         auto it = std::ranges::lower_bound(input.rs, v,
             std::less<uint64_t>(),
             [](const auto& range){ return range.second; });
         return (it != input.rs.end() && v >= it->first && v <= it->second);
     };
-
-
     return std::ranges::count_if(input.vs, in_range);
 }
 
 auto p2(auto input){
     Timer::ScopedTimer _t("Part 2");
-
     return std::ranges::fold_left(input.rs, 0ULL, [](uint64_t acc, const auto& r){
         return acc + (r.second - r.first + 1);
     });
-
 }
 
 int main(int argc, char** argv){
