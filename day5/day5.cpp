@@ -84,7 +84,6 @@ auto p2(auto input){
 int main(int argc, char** argv){
     Timer::ScopedTimer t_("Total");
     auto input = parse_input((argc == 2 ? std::string(argv[1]) : ""));
-        
     std::println("Part 1: {}", p1(input));
     std::println("Part 2: {}", p2(input));
 }

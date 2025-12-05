@@ -31,7 +31,23 @@ RETURN_TYPE parse_input(PARSE_LINE_FUNCTION parse_line, std::string input_file_p
     RETURN_TYPE ret;
     std::string file_buffer;
     std::string_view content_view;
+    bool loaded_source = false;
+
+    // Prioritise command line file if provided
+    if (!input_file_path.empty()) {
+        std::println("Using file: {}", input_file_path);
+        std::ifstream f(input_file_path);
+        if(f.is_open()) {
+            file_buffer = read_stream(f);
+            content_view = file_buffer;
+            loaded_source = true;
+        } else {
+            std::println(stderr, "Error: Failed to open file '{}'.", input_file_path);
+            return ret;
+        }
+    }
     
+    if(!loaded_source){
 #if defined(__cpp_pp_embed) && defined(AOC_INPUT_FILE_PATH) && !defined(FORCE_FILE_IO)
     // Use embedded file
     // FORCE_FILE_IO can be used to override
@@ -46,22 +62,12 @@ RETURN_TYPE parse_input(PARSE_LINE_FUNCTION parse_line, std::string input_file_p
     if (!content_view.empty() && content_view.back() == '\0') content_view.remove_suffix(1);
     std::println("Using embedded input");
 #else
-    // Using file I/O
-    if (!input_file_path.empty()) {
-        std::println("Using file: {}", input_file_path);
-        std::ifstream f(input_file_path);
-        if(f.is_open()) {
-            file_buffer = read_stream(f);
-        } else {
-            std::println(stderr, "Failed to open file, falling back to empty.");
-        }
-    } else {
-        std::println("Reading from std::cin");
-        file_buffer = read_stream(std::cin);
-    }
+    std::println("Reading from std::cin");
+    file_buffer = read_stream(std::cin);
     content_view = file_buffer;
 
 #endif
+    }
 
     std::size_t start = 0;
     std::size_t end = 0;
