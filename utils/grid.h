@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <print>
 #include <ranges>
+#include <algorithm>
+#include <numeric>
 
 namespace Grid{
 

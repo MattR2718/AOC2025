@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(AOC2025 VERSION 0.1.0 LANGUAGES C CXX)
 
-add_executable(AOC2025 main.cpp)
+
+# Compiler settings
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 include(FetchContent)
 FetchContent_Declare(
@@ -23,6 +28,9 @@ message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_BINARY_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/utils)
+
+add_executable(AOC2025 main.cpp)
+
 
 #add_subdirectory(day1)
 add_subdirectory(day2)
