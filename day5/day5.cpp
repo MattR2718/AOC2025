@@ -63,7 +63,7 @@ auto parse_input(std::string input_file = ""){
     
 }
 
-auto p1(auto input){
+auto p1(const auto& input){
     Timer::ScopedTimer _t("Part 1");
     auto in_range = [&input](uint64_t v){
         auto it = std::ranges::lower_bound(input.rs, v,
@@ -74,7 +74,7 @@ auto p1(auto input){
     return std::ranges::count_if(input.vs, in_range);
 }
 
-auto p2(auto input){
+auto p2(const auto& input){
     Timer::ScopedTimer _t("Part 2");
     return std::ranges::fold_left(input.rs, 0ULL, [](uint64_t acc, const auto& r){
         return acc + (r.second - r.first + 1);
