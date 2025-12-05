@@ -12,78 +12,38 @@
 
 #include <timer.h>
 
+#define AOC_INPUT_FILE_PATH "../inputs/day5/input.txt"
+
+#include <input.h>
+#include <string_utils.h>
+
 struct Input{
     std::vector<std::pair<uint64_t, uint64_t>> rs;
     std::vector<uint64_t> vs;
 };
 
-auto parse_input(std::string input_file){
+
+auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
-    // Parse to u64 without allocation
-    auto to_u64 = [](std::string_view sv) {
-        uint64_t val = 0;
-        std::from_chars(sv.data(), sv.data() + sv.size(), val);
-        return val;
-    };
+    bool start = true;
 
-    auto parse_line = [&to_u64](std::string_view linetxt, bool& start, auto& i){
+    auto parse_line = [&](std::string_view linetxt, auto& i){
         if(linetxt.empty()){ start = false; return; }
         if(start){
             std::size_t d = linetxt.find('-');
             if (d != std::string_view::npos) {
                 i.rs.emplace_back(
-                    to_u64(linetxt.substr(0, d)), 
-                    to_u64(linetxt.substr(d + 1))
+                    StringUtils::to_num(linetxt.substr(0, d)), 
+                    StringUtils::to_num(linetxt.substr(d + 1))
                 );
             }
         }else{
-            i.vs.emplace_back(to_u64(linetxt));
+            i.vs.emplace_back(StringUtils::to_num(linetxt));
         }
     };
     
-    Input i;
-    bool start = true;
-
-    if(!input_file.empty()){
-        std::println("Using file {}", input_file);
-        std::string linetxt;
-        std::ifstream f(input_file);
-
-        while(std::getline(f, linetxt)){
-            parse_line(linetxt, start, i);
-        }
-    }
-#ifdef __cpp_pp_embed
-    else{
-static constexpr const char _input[] = {
-    #embed "../inputs/day5/input.txt"
-    , '\0'   
-};
-static constexpr std::string_view input_sv = _input;
-
-        std::println("Using embedded file");
-
-        std::size_t s = 0, e = 0;
-        while((e = input_sv.find('\n', s)) != std::string_view::npos){
-            auto l = input_sv.substr(s, e - s);
-
-            parse_line(l, start, i);
-
-            s = e + 1;
-        }
-
-    }
-#else
-    if(!input_file.empty()){
-        std::println("Reading from std::cin");
-        std::string linetxt;
-
-        while(std::getline(std::cin, linetxt)){
-            parse_line(linetxt, start, i);
-        }
-    }
-#endif
+    Input i = InputUtils::parse_input<Input>(parse_line, input_file);
 
     std::vector<std::pair<uint64_t, uint64_t>> merged_ranges;
     merged_ranges.reserve(i.rs.size());
