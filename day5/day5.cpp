@@ -86,6 +86,7 @@ static constexpr std::string_view input_sv = _input;
 #endif
 
     std::vector<std::pair<uint64_t, uint64_t>> merged_ranges;
+    merged_ranges.reserve(i.rs.size());
     std::ranges::sort(i.rs, [](const auto& a, const auto& b){ return a.first < b.first; });
     merged_ranges.emplace_back(i.rs.front());
     for(const auto& r : i.rs | std::views::drop(1)){
