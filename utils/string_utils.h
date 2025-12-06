@@ -39,6 +39,31 @@ inline void trim(std::string &s) {
     rtrim(s);
 }
 
+// Trim spaces from start
+inline std::string_view ltrim(std::string_view s) {
+    auto it = std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    // Shrink the view from the left
+    s.remove_prefix(std::distance(s.begin(), it));
+    return s;
+}
+
+// Trim spaces from end
+inline std::string_view rtrim(std::string_view s) {
+    auto it = std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    // Shrink the view from the right
+    s.remove_suffix(std::distance(s.rbegin(), it));
+    return s;
+}
+
+// Trim spaces from both ends
+inline std::string_view trim(std::string_view s) {
+    return ltrim(rtrim(s));
+}
+
 // Split string by delimiter
 inline std::vector<std::string> split(const std::string &s, char delimiter) {
     std::vector<std::string> tokens;
@@ -75,6 +100,43 @@ inline std::vector<std::string_view> split(std::string_view s, std::string_view 
     }
     parts.push_back(s.substr(start));
     return parts;
+}
+
+template <typename T = int64_t>
+std::vector<T> extract_numbers(std::string_view sv) {
+    std::vector<T> numbers;
+    const char* ptr = sv.data();
+    const char* end = sv.data() + sv.size();
+
+    while (ptr < end) {
+        // Skip non-digit characters
+        // If T is signed,  allow '-' as a start char if followed by a digit
+        bool is_sign = false;
+        if constexpr (std::is_signed_v<T>) {
+            if (*ptr == '-') {
+                if (ptr + 1 < end && std::isdigit(*(ptr + 1))) {
+                    is_sign = true;
+                }
+            }
+        }
+
+        if (!std::isdigit(*ptr) && !is_sign) {
+            ++ptr;
+            continue;
+        }
+
+        // Parse the number
+        T value;
+        auto result = std::from_chars(ptr, end, value);
+
+        if (result.ec == std::errc()) {
+            numbers.push_back(value);
+            ptr = result.ptr; // Move pointer to end of parsed number
+        } else {
+            ++ptr; 
+        }
+    }
+    return numbers;
 }
 
 } // namespace StringUtils
