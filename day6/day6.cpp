@@ -27,17 +27,17 @@ struct Input{
 auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
-    auto parse_line = [&](std::string_view linetxt, auto& i){
-        if(linetxt.front() == '*' || linetxt.front() == '+'){
-            auto ops = std::views::filter(linetxt, [](char c){ return c != ' '; });
-            i.ops.insert(i.ops.begin(), ops.begin(), ops.end());
-        }else{
-            i.vs.emplace_back(std::vector<uint64_t>());
-            i.vs.back() = StringUtils::extract_numbers<uint64_t>(linetxt);
-        }
-    };
+    // auto parse_line = [&](std::string_view linetxt, auto& i){
+    //     if(linetxt.front() == '*' || linetxt.front() == '+'){
+    //         auto ops = std::views::filter(linetxt, [](char c){ return c != ' '; });
+    //         i.ops.insert(i.ops.begin(), ops.begin(), ops.end());
+    //     }else{
+    //         i.vs.emplace_back(std::vector<uint64_t>());
+    //         i.vs.back() = StringUtils::extract_numbers<uint64_t>(linetxt);
+    //     }
+    // };
     
-    Input i1 =  InputUtils::parse_input<Input>(parse_line, input_file);
+    // Input i1 =  InputUtils::parse_input<Input>(parse_line, input_file);
 
     auto line_collector = [](std::string_view line, std::vector<std::string>& lines) {
         lines.emplace_back(line);
@@ -47,7 +47,8 @@ auto parse_input(std::string input_file = ""){
 
     Grid::Grid i2 = Grid::Grid<char>(lines, 1, ' ');
 
-    return std::pair<Input, Grid::Grid<char>>{i1, i2};
+    //return std::pair<Input, Grid::Grid<char>>{i1, i2};
+    return i2;
 }
 
 auto p1(const auto& input){
@@ -70,6 +71,75 @@ auto p1(const auto& input){
 
 
     return std::ranges::fold_left(accumulator, uint64_t(0), std::plus<>());
+}
+
+inline auto parse_block_add(const std::size_t start_col, const auto& input){
+    uint64_t block_total = 0;
+
+    for (std::size_t row = 0; row < input.rows - 1; row++) {
+        const char* row_ptr = (const char*)(input.row_ptr(row));
+        std::size_t c = start_col;
+        
+        // Skip leading spaces efficiently
+        while (c < input.cols && row_ptr[c] == ' ') c++;
+
+        if (c < input.cols) {
+            uint64_t val = 0;
+            while (c < input.cols) {
+                char d = row_ptr[c];
+                if (d == ' ') break; // Found end of number
+                val = val * 10 + (d - '0');
+                c++;
+            }
+
+            block_total += val;
+        }
+    }
+    return block_total;
+}
+
+inline auto parse_block_mul(const std::size_t start_col, const auto& input){
+    uint64_t block_total = 1;
+
+    for (std::size_t row = 0; row < input.rows - 1; row++) {
+        const char* row_ptr = (const char*)(input.row_ptr(row));
+        std::size_t c = start_col;
+        
+        // Skip leading spaces efficiently
+        while (c < input.cols && row_ptr[c] == ' ') c++;
+
+        if (c < input.cols) {
+            uint64_t val = 0;
+            while (c < input.cols) {
+                char d = row_ptr[c];
+                if (d == ' ') break; // Found end of number
+                val = val * 10 + (d - '0');
+                c++;
+            }
+
+            block_total *= val;
+        }
+    }
+    return block_total;
+}
+
+auto p1_2(const auto& input){
+    Timer::ScopedTimer _t("Part 1_2");
+
+    // Extract ops
+    std::vector<std::pair<char, int>> ops;
+    for(std::size_t i = 0; i < input.cols; i++){
+        if(input(input.rows - 1, i) != ' '){
+            ops.emplace_back(input(input.rows - 1, i), i);
+        }
+    }
+
+    uint64_t total = 0;
+    for(const auto& [op, col_start] : ops){
+        total += (op == '+') ? parse_block_add(col_start, input) : parse_block_mul(col_start, input);
+    }
+
+    return total;
 }
 
 auto p2(const auto& input){
@@ -124,14 +194,19 @@ auto p2(const auto& input){
 
 int main(int argc, char** argv){
     Timer::ScopedTimer t_("Total");
-    auto[input1, input2] = parse_input((argc == 2 ? std::string(argv[1]) : ""));
-    std::println("Part 1: {}", p1(input1));
-    std::println("Part 2: {}", p2(input2));
+    //auto[input1, input2] = parse_input((argc == 2 ? std::string(argv[1]) : ""));
+    //std::println("Part 1: {}", p1(input1));
+    auto input = parse_input((argc == 2 ? std::string(argv[1]) : ""));
+    std::println("Part 1_2: {}", p1_2(input));
+    std::println("Part 2: {}", p2(input));
 }
 
 
 /*
 
+
+// Double parsing
+// Slower overall, much faster p1
 Using embedded input
 Using embedded input
 [Timer] Input Parsing (Global): 166.584 µs
@@ -140,5 +215,15 @@ Part 1: 5171061464548
 [Timer] Part 2 (Global): 52.914 µs
 Part 2: 10189959087258
 [Timer] Total (Global): 274.646 µs
+
+// Single parsing
+// Faster overall, slower p1
+Using embedded input
+[Timer] Input Parsing (Global): 48.373 µs
+[Timer] Part 1_2 (Global): 50.844 µs
+Part 1_2: 5171061464548
+[Timer] Part 2 (Global): 54.214 µs
+Part 2: 10189959087258
+[Timer] Total (Global): 188.062 µs
 
 */

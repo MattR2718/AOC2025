@@ -87,6 +87,9 @@ struct Grid {
     // Iterator to start of row 'r' in the active area
     auto row_begin(size_t r) { return data.begin() + (r + padding) * stride + padding; }
 
+    // Pointer to start of row 'r' in the active area
+    auto row_ptr(size_t r) const { return data.data() + (r + padding) * stride + padding; }
+
     // Coordinate conversions
     constexpr std::size_t index_of(std::size_t r, std::size_t c) const {
         return (r + padding) * stride + (c + padding);
