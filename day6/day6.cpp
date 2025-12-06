@@ -18,6 +18,8 @@
 #include <string_utils.h>
 #include <grid.h>
 
+//#define SINGLE_PARSING
+
 struct Input{
     std::vector<std::vector<uint64_t>> vs;
     std::vector<char> ops;
@@ -27,17 +29,7 @@ struct Input{
 auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
-    // auto parse_line = [&](std::string_view linetxt, auto& i){
-    //     if(linetxt.front() == '*' || linetxt.front() == '+'){
-    //         auto ops = std::views::filter(linetxt, [](char c){ return c != ' '; });
-    //         i.ops.insert(i.ops.begin(), ops.begin(), ops.end());
-    //     }else{
-    //         i.vs.emplace_back(std::vector<uint64_t>());
-    //         i.vs.back() = StringUtils::extract_numbers<uint64_t>(linetxt);
-    //     }
-    // };
     
-    // Input i1 =  InputUtils::parse_input<Input>(parse_line, input_file);
 
     auto line_collector = [](std::string_view line, std::vector<std::string>& lines) {
         lines.emplace_back(line);
@@ -47,8 +39,23 @@ auto parse_input(std::string input_file = ""){
 
     Grid::Grid i2 = Grid::Grid<char>(lines, 1, ' ');
 
-    //return std::pair<Input, Grid::Grid<char>>{i1, i2};
+#ifndef SINGLE_PARSING
+    auto parse_line = [&](std::string_view linetxt, auto& i){
+        if(linetxt.front() == '*' || linetxt.front() == '+'){
+            auto ops = std::views::filter(linetxt, [](char c){ return c != ' '; });
+            i.ops.insert(i.ops.begin(), ops.begin(), ops.end());
+        }else{
+            i.vs.emplace_back(std::vector<uint64_t>());
+            i.vs.back() = StringUtils::extract_numbers<uint64_t>(linetxt);
+        }
+    };
+    
+    Input i1 =  InputUtils::parse_input<Input>(parse_line, input_file);
+
+    return std::pair<Input, Grid::Grid<char>>{i1, i2};
+#else
     return i2;
+#endif
 }
 
 auto p1(const auto& input){
@@ -194,11 +201,17 @@ auto p2(const auto& input){
 
 int main(int argc, char** argv){
     Timer::ScopedTimer t_("Total");
-    //auto[input1, input2] = parse_input((argc == 2 ? std::string(argv[1]) : ""));
-    //std::println("Part 1: {}", p1(input1));
+#ifndef SINGLE_PARSING
+    std::println("Double parsing");
+    auto[input1, input2] = parse_input((argc == 2 ? std::string(argv[1]) : ""));
+    std::println("Part 1: {}", p1(input1));
+    std::println("Part 2: {}", p2(input2));
+#else
+    std::println("Single parsing");
     auto input = parse_input((argc == 2 ? std::string(argv[1]) : ""));
     std::println("Part 1_2: {}", p1_2(input));
     std::println("Part 2: {}", p2(input));
+#endif
 }
 
 
