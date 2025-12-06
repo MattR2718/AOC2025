@@ -18,7 +18,7 @@
 #include <string_utils.h>
 #include <grid.h>
 
-//#define SINGLE_PARSING
+#define DOUBLE_PARSING true
 
 struct Input{
     std::vector<std::vector<uint64_t>> vs;
@@ -39,7 +39,7 @@ auto parse_input(std::string input_file = ""){
 
     Grid::Grid i2 = Grid::Grid<char>(lines, 1, ' ');
 
-#ifndef SINGLE_PARSING
+#if DOUBLE_PARSING
     auto parse_line = [&](std::string_view linetxt, auto& i){
         if(linetxt.front() == '*' || linetxt.front() == '+'){
             auto ops = std::views::filter(linetxt, [](char c){ return c != ' '; });
@@ -201,7 +201,7 @@ auto p2(const auto& input){
 
 int main(int argc, char** argv){
     Timer::ScopedTimer t_("Total");
-#ifndef SINGLE_PARSING
+#if DOUBLE_PARSING
     std::println("Double parsing");
     auto[input1, input2] = parse_input((argc == 2 ? std::string(argv[1]) : ""));
     std::println("Part 1: {}", p1(input1));
