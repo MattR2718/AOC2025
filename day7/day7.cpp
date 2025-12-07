@@ -22,13 +22,13 @@ auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
 
-    auto line_collector = [](std::string_view line, std::vector<std::string>& lines) {
+    static auto line_collector = [](std::string_view line, std::vector<std::string>& lines) {
         lines.emplace_back(line);
     };
 
     auto lines = InputUtils::parse_input<std::vector<std::string>>(line_collector, input_file);
 
-    auto map = [](char c) { 
+    static auto map = [](char c) { 
         if(c == '^') return int64_t{-1};
         if(c == 'S') return int64_t{1};
         return int64_t{0};
@@ -37,7 +37,7 @@ auto parse_input(std::string input_file = ""){
     return Grid::Grid<int64_t>(lines, map);
 }
 
-auto p1_2(auto input){
+auto p1_2(auto& input){
     Timer::ScopedTimer _t("Parts 1 and 2");
     int splits = 0;
     for(const auto row : std::views::iota(0u, input.rows)){
@@ -67,9 +67,9 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 130.353 µs
-[Timer] Parts 1 and 2 (Global): 68.972 µs
+[Timer] Input Parsing (Global): 103.426 µs
+[Timer] Parts 1 and 2 (Global): 67.421 µs
 Part (1, 2): (1553, 15811946526915)
-[Timer] Total (Global): 336.628 µs
+[Timer] Total (Global): 219.478 µs
 
 */

@@ -63,7 +63,7 @@ struct Grid {
 
     template <typename Func>
     requires std::invocable<Func, char>
-    Grid(const std::vector<std::string>& lines, Func transform, std::size_t pad = 1, T border_val = T{}) 
+    Grid(const std::vector<std::string>& lines, Func& transform, std::size_t pad = 1, T border_val = T{}) 
         : padding(pad), border_value(border_val)
     {
         if (lines.empty()) return;

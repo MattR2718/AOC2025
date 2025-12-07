@@ -27,7 +27,7 @@ concept LineParser = std::invocable<Func, std::string_view, Ret&>;
 // Generic input parser
 // PARSE_LINE_FUNCTION should match LineParser<RETURN_TYPE>
 template<typename RETURN_TYPE, LineParser <RETURN_TYPE> PARSE_LINE_FUNCTION>
-RETURN_TYPE parse_input(PARSE_LINE_FUNCTION parse_line, std::string input_file_path = ""){
+RETURN_TYPE parse_input(PARSE_LINE_FUNCTION& parse_line, std::string input_file_path = ""){
     RETURN_TYPE ret;
     std::string file_buffer;
     std::string_view content_view;
