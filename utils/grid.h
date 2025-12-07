@@ -28,7 +28,6 @@ struct Grid {
 
     Grid() = default;
 
-    // Blank Grid with specific padding
     Grid(std::size_t r, std::size_t c, std::size_t pad = 1, T fill_val = T{}, T border_val = T{})
         : rows(r), cols(c), padding(pad), stride(c + 2 * pad), border_value(border_val) 
     {
@@ -57,6 +56,29 @@ struct Grid {
         for (size_t i = 0; i < rows; ++i) {
             for (size_t j = 0; j < cols; ++j) {
                 operator()(i, j) = static_cast<T>(lines[i][j]);
+            }
+        }
+        init_offsets();
+    }
+
+    template <typename Func>
+    requires std::invocable<Func, char>
+    Grid(const std::vector<std::string>& lines, Func transform, std::size_t pad = 1, T border_val = T{}) 
+        : padding(pad), border_value(border_val)
+    {
+        if (lines.empty()) return;
+        rows = lines.size();
+        cols = lines[0].size();
+        stride = cols + 2 * padding;
+        
+        // Fill entire grid with border value first
+        data.assign((rows + 2 * padding) * stride, border_val);
+
+        // Copy input data into the center using the transformer
+        for (size_t i = 0; i < rows; ++i) {
+            for (size_t j = 0; j < cols; ++j) {
+                // Apply the transform function
+                operator()(i, j) = static_cast<T>(transform(lines[i][j]));
             }
         }
         init_offsets();
