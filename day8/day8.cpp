@@ -27,7 +27,7 @@ struct Point{
 };
 
 struct PointPair {
-    double distSquared;
+    uint64_t distSquared;
     int p1_index;
     int p2_index;
 };
@@ -67,14 +67,15 @@ auto parse_input(std::string input_file = ""){
     pairs.reserve(n * (n - 1) / 2);
 
     for (int i = 0; i < n; ++i) {
+        const auto& p1 = input[i];
         for (int j = i + 1; j < n; ++j) {
-            double d2 = std::hypot(
-                static_cast<double>(input[i].x - input[j].x),
-                static_cast<double>(input[i].y - input[j].y),
-                static_cast<double>(input[i].z - input[j].z)
-            );
-            
-            pairs.push_back({d2, i, j});
+            const auto& p2 = input[j];
+
+            uint64_t dx = static_cast<uint64_t>(p1.x - p2.x);
+            uint64_t dy = static_cast<uint64_t>(p1.y - p2.y);
+            uint64_t dz = static_cast<uint64_t>(p1.z - p2.z);
+
+            pairs.push_back({dx*dx + dy*dy + dz*dz, i, j});
         }
     }
 
@@ -90,7 +91,7 @@ auto parse_input(std::string input_file = ""){
 auto p1(const auto& input_){
     Timer::ScopedTimer _t("Part 1");
 
-    auto [input, pairs] = input_;
+    const auto& [input, pairs] = input_;
 
 
     int n = input.size();
@@ -99,12 +100,6 @@ auto p1(const auto& input_){
     // Find the top k
 
     int k = input.size() == 1000 ? 1000 : 10;
-
-    std::partial_sort(pairs.begin(), pairs.begin() + k, pairs.end(),
-        [](const PointPair& a, const PointPair& b) {
-            return a.distSquared < b.distSquared;
-        }
-    );
 
     std::vector<std::vector<int>> adj(n);
     for (int i = 0; i < k; ++i) {
@@ -150,7 +145,7 @@ auto p1(const auto& input_){
 
 auto p2(const auto& input_){
     Timer::ScopedTimer _t("Part 2");
-    auto [input, pairs] = input_;
+    const auto& [input, pairs] = input_;
 
     int n = input.size();
     
