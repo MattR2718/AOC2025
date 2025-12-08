@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <compare>
+#include <limits>
 
 #include <timer.h>
 
@@ -30,6 +31,8 @@ struct PointPair {
     uint64_t distSquared;
     int p1_index;
     int p2_index;
+
+    auto operator<=>(const PointPair&) const = default;
 };
 
 template <>
@@ -106,6 +109,82 @@ void radix_sort_pairs(std::vector<PointPair>& source) {
     }
 }
 
+// Find an 'upper bound' threshold distance
+// Use a rough heuristic that isnt neccessarily correct for the full input
+//      Look at all points from each 1D axis projection
+//      Pick the WINDOW nearedt neighbors along that axis
+// Find the largest distance within that mst
+// That is the maximum threshold distance
+// Since we have a complete graph where all edges are less than or equal to that distance
+// Then the mst will only contain edges less than or equal to that distance
+// So any edge greater than that distance can be safely ignored
+auto find_threshold(const std::vector<Point>& points){
+    int n = points.size();
+    std::vector<PointPair> rough_edges;
+    rough_edges.reserve(n * 20); // 3 dimensions * ~6 neighbors
+
+    auto collect = [&](auto get_coord){
+        std::vector<int> idx(n);
+        std::iota(idx.begin(), idx.end(), 0);
+        std::ranges::sort(idx, [&](int a, int b){
+            return get_coord(points[a]) < get_coord(points[b]);
+        });
+
+        int window = 6; // hopefully enough to get a graph
+        for(int i = 0; i < n; i++){
+            for(int w = 1; w <= window && (i + w) < n; w++){
+                int u = idx[i];
+                int v = idx[i + w];
+
+                uint64_t dx = static_cast<uint64_t>(points[u].x - points[v].x);
+                uint64_t dy = static_cast<uint64_t>(points[u].y - points[v].y);
+                uint64_t dz = static_cast<uint64_t>(points[u].z - points[v].z);
+                rough_edges.push_back({dx*dx + dy*dy + dz*dz, u, v});
+            }
+        }
+    };
+
+    collect([](const Point& p){ return p.x; });
+    collect([](const Point& p){ return p.y; });
+    collect([](const Point& p){ return p.z; });
+
+    // Erase duplicates
+    rough_edges.erase(std::unique(rough_edges.begin(), rough_edges.end()), rough_edges.end());
+
+    radix_sort_pairs(rough_edges);
+
+    // Kruskal to find mst on rough edges
+    std::vector<int> parent(n);
+    std::iota(parent.begin(), parent.end(), 0);
+    auto find = [&](int i){
+        while(parent[i] != i){
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        return i;
+    };
+
+    int edges_count = 0;
+    uint64_t max_weight = 0;
+
+    for(const auto& edge : rough_edges){
+        int u_root = find(edge.p1_index);
+        int v_root = find(edge.p2_index);
+        if(u_root != v_root){
+            parent[u_root] = v_root;
+            max_weight = edge.distSquared;
+            edges_count++;
+            if(edges_count == n - 1) break;
+        }
+    }
+
+    if(edges_count < n - 1){
+        return std::numeric_limits<uint64_t>::max();
+    }
+
+    return max_weight;
+}
+
 auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
@@ -116,10 +195,13 @@ auto parse_input(std::string input_file = ""){
 
     auto input = InputUtils::parse_input<std::vector<Point>>(line_collector, input_file);
 
-    std::vector<PointPair> pairs;
-
     int n = input.size();
-    pairs.reserve(static_cast<size_t>(n) * (n - 1) / 2);
+
+    uint64_t limit = find_threshold(input);
+
+
+    std::vector<PointPair> pairs;
+    pairs.reserve(n * 20); // rough estimate
     for (int i = 0; i < n; ++i) {
         const auto& p1 = input[i];
         for (int j = i + 1; j < n; ++j) {
@@ -129,7 +211,10 @@ auto parse_input(std::string input_file = ""){
             uint64_t dy = static_cast<uint64_t>(p1.y - p2.y);
             uint64_t dz = static_cast<uint64_t>(p1.z - p2.z);
 
-            pairs.push_back({dx*dx + dy*dy + dz*dz, i, j});
+            uint64_t d2 = dx*dx + dy*dy + dz*dz;
+            if(d2 > limit) continue;
+
+            pairs.push_back({d2, i, j});
         }
     }
 
@@ -231,11 +316,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 20.874 ms
-[Timer] Part 1 (Global): 88.509 µs
+[Timer] Input Parsing (Global): 4.340 ms
+[Timer] Part 1 (Global): 90.202 µs
 Part 1: 57970
-[Timer] Part 2 (Global): 21.480 µs
+[Timer] Part 2 (Global): 21.278 µs
 Part 2: 8520040659
-[Timer] Total (Global): 21.048 ms
+[Timer] Total (Global): 4.505 ms
 
 */
