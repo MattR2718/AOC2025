@@ -26,7 +26,7 @@ struct Point{
     auto operator<=>(const Point&) const = default;
 };
 
-struct PointPair {
+struct alignas(16) PointPair {
     uint64_t distSquared;
     int p1_index;
     int p2_index;
@@ -51,6 +51,61 @@ struct std::formatter<std::vector<Point>> : std::range_formatter<Point> {
     }
 };
 
+// Radix sort for O(n) sorting by distSquared
+// Significantly faster than std::sort
+void radix_sort_pairs(std::vector<PointPair>& source) {
+    const size_t n = source.size();
+    if (n == 0) return;
+
+    std::vector<PointPair> buffer(n);
+    
+    PointPair* in = source.data();
+    PointPair* out = buffer.data();
+
+    // Compute Histograms for all passes in one go.
+    size_t counts[8][256] = {0};
+
+    for (size_t i = 0; i < n; ++i) {
+        uint64_t val = in[i].distSquared;
+        // Unroll loop for scalar pipeline efficiency
+        counts[0][val & 0xFF]++;
+        counts[1][(val >> 8) & 0xFF]++;
+        counts[2][(val >> 16) & 0xFF]++;
+        counts[3][(val >> 24) & 0xFF]++;
+        counts[4][(val >> 32) & 0xFF]++;
+        counts[5][(val >> 40) & 0xFF]++;
+        counts[6][(val >> 48) & 0xFF]++;
+        counts[7][(val >> 56) & 0xFF]++;
+    }
+
+    // Convert counts to offsets
+    size_t offsets[8][256];
+    for(int pass = 0; pass < 8; ++pass) {
+        size_t current_offset = 0;
+        for (int i = 0; i < 256; ++i) {
+            offsets[pass][i] = current_offset;
+            current_offset += counts[pass][i];
+        }
+    }
+
+    // Scatter
+    for (int shift = 0; shift < 64; shift += 8) {
+        int pass = shift / 8;
+        size_t* pass_offsets = offsets[pass];
+
+        for (size_t i = 0; i < n; i++) {
+            uint8_t byte = (in[i].distSquared >> shift) & 0xFF;
+            out[pass_offsets[byte]++] = in[i];
+        }
+        std::swap(in, out);
+    }
+
+    // If the final result ended up in buffer, copy it back to source
+    if (in != source.data()) {
+        source = buffer;
+    }
+}
+
 auto parse_input(std::string input_file = ""){
     Timer::ScopedTimer t_("Input Parsing");
 
@@ -62,10 +117,9 @@ auto parse_input(std::string input_file = ""){
     auto input = InputUtils::parse_input<std::vector<Point>>(line_collector, input_file);
 
     std::vector<PointPair> pairs;
+
     int n = input.size();
-
-    pairs.reserve(n * (n - 1) / 2);
-
+    pairs.reserve(static_cast<size_t>(n) * (n - 1) / 2);
     for (int i = 0; i < n; ++i) {
         const auto& p1 = input[i];
         for (int j = i + 1; j < n; ++j) {
@@ -79,9 +133,7 @@ auto parse_input(std::string input_file = ""){
         }
     }
 
-    std::ranges::sort(pairs, [](const PointPair& a, const PointPair& b) {
-        return a.distSquared < b.distSquared;
-    });
+    radix_sort_pairs(pairs);
 
     return std::pair<std::vector<Point>, std::vector<PointPair>>{input, pairs};
 }
@@ -98,7 +150,6 @@ auto p1(const auto& input_){
     
 
     // Find the top k
-
     int k = input.size() == 1000 ? 1000 : 10;
 
     std::vector<std::vector<int>> adj(n);
@@ -152,12 +203,17 @@ auto p2(const auto& input_){
     std::vector<int> in_mst(n, 0);
     uint64_t p2 = 0;
 
+    int nodes_in_mst = 0;
     for(const auto& pair : pairs){
         if(in_mst[pair.p1_index] == 0 || in_mst[pair.p2_index] == 0){
+            nodes_in_mst += (in_mst[pair.p1_index] == 0) ? 1 : 0;
+            nodes_in_mst += (in_mst[pair.p2_index] == 0) ? 1 : 0;
             in_mst[pair.p1_index] = 1;
             in_mst[pair.p2_index] = 1;
+            
             p2 = input[pair.p1_index].x * input[pair.p2_index].x;
         }
+        if(nodes_in_mst == n) break;
     }
 
     return p2;
@@ -175,11 +231,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 38.528 ms
-[Timer] Part 1 (Global): 2.633 ms
+[Timer] Input Parsing (Global): 20.874 ms
+[Timer] Part 1 (Global): 88.509 µs
 Part 1: 57970
-[Timer] Part 2 (Global): 839.805 µs
+[Timer] Part 2 (Global): 21.480 µs
 Part 2: 8520040659
-[Timer] Total (Global): 42.296 ms
+[Timer] Total (Global): 21.048 ms
 
 */
