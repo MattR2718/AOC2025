@@ -26,7 +26,7 @@ struct Point{
     auto operator<=>(const Point&) const = default;
 };
 
-struct alignas(16) PointPair {
+struct PointPair {
     uint64_t distSquared;
     int p1_index;
     int p2_index;
