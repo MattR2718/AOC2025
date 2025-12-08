@@ -247,9 +247,9 @@ auto p1(const auto& input_){
     //       by setting the root of the smaller tree to point to the root of the larger tree
     // When finding whether two elements are in the same group
     //     traverse up to the root of their trees, if the roots are the same, they are in the same group
-    std::vector<int> parent(n);
-    std::vector<int64_t> size(n, 1); // Track size of each component
-    std::iota(parent.begin(), parent.end(), 0); // parent[i] = i initially
+    // DSU encodes both the parent of a given index (if dsu[i] >= 0) or the size of the set (if dsu[i] < 0)
+    std::vector<int16_t> dsu(n, -1);
+
 
     // Find with Path Compression
     // Path compression sets every node along the path to point directly to the root
@@ -258,11 +258,11 @@ auto p1(const auto& input_){
     // This means that if you later call find(C), it goes straight to A rather than through B
     auto find = [&](int i) {
         int root = i;
-        while (root != parent[root]) root = parent[root];
+        while(dsu[root] >= 0) root = dsu[root];
         // Compression
         while (i != root) {
-            int next = parent[i];
-            parent[i] = root;
+            int16_t next = dsu[i];
+            dsu[i] = static_cast<int16_t>(root);
             i = next;
         }
         return root;
@@ -273,34 +273,39 @@ auto p1(const auto& input_){
         int rootU = find(pairs[i].p1_index);
         int rootV = find(pairs[i].p2_index);
 
-        if (rootU != rootV) {
-            // Merge the smaller tree into the larger one to keep tree flat
-            if (size[rootU] < size[rootV]) {
-                parent[rootU] = rootV;
-                size[rootV] += size[rootU];
-            } else {
-                parent[rootV] = rootU;
-                size[rootU] += size[rootV];
+        if(rootU != rootV){
+            if(dsu[rootU] < dsu[rootV]){
+                dsu[rootU] += dsu[rootV];
+                dsu[rootV] = static_cast<int16_t>(rootU);
+            }else{
+                dsu[rootV] += dsu[rootU];
+                dsu[rootU] = static_cast<int16_t>(rootV);
             }
         }
     }
 
-    // Collect all component sizes (only from the roots)
-    std::vector<int64_t> circuit_sizes;
-    circuit_sizes.reserve(n);
-    
-    for (int i = 0; i < n; ++i) {
-        // Only counting the roots
-        if (parent[i] == i) {
-            circuit_sizes.push_back(size[i]);
+    int64_t max1 = 0, max2 = 0, max3 = 0;
+    for (int16_t val : dsu) {
+        // Only look at roots (negative values)
+        if (val < 0) {
+            int64_t size = -static_cast<int64_t>(val);
+            if (size > max3) {
+                if (size > max2) {
+                    if (size > max1) {
+                        max3 = max2; max2 = max1; max1 = size;
+                    } else {
+                        max3 = max2; max2 = size;
+                    }
+                } else {
+                    max3 = size;
+                }
+            }
         }
     }
 
-    // Sort to find the largest 3
-    std::partial_sort(circuit_sizes.begin(), circuit_sizes.begin() + 3, circuit_sizes.end(), std::greater<>());
-
-    return circuit_sizes[0] * circuit_sizes[1] * circuit_sizes[2];
+    return max1 * max2 * max3;
 }
+
 
 auto p2(const auto& input_){
     Timer::ScopedTimer _t("Part 2");
@@ -339,11 +344,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 3.677 ms
-[Timer] Part 1 (Global): 25.230 µs
+[Timer] Input Parsing (Global): 3.465 ms
+[Timer] Part 1 (Global): 16.379 µs
 Part 1: 57970
-[Timer] Part 2 (Global): 12.613 µs
+[Timer] Part 2 (Global): 11.306 µs
 Part 2: 8520040659
-[Timer] Total (Global): 3.763 ms
+[Timer] Total (Global): 3.549 ms
 
 */
