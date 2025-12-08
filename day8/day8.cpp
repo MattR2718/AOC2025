@@ -27,10 +27,10 @@ struct Point{
     auto operator<=>(const Point&) const = default;
 };
 
-struct PointPair {
+struct __attribute__((packed)) PointPair {
     uint64_t distSquared;
-    int p1_index;
-    int p2_index;
+    uint16_t p1_index;
+    uint16_t p2_index;
 
     auto operator<=>(const PointPair&) const = default;
 };
@@ -124,22 +124,22 @@ auto find_threshold(const std::vector<Point>& points){
     rough_edges.reserve(n * 20); // 3 dimensions * ~6 neighbors
 
     auto collect = [&](auto get_coord){
-        std::vector<int> idx(n);
-        std::iota(idx.begin(), idx.end(), 0);
-        std::ranges::sort(idx, [&](int a, int b){
+        std::vector<uint16_t> idx(n);
+        std::iota(idx.begin(), idx.end(), uint16_t{0});
+        std::ranges::sort(idx, [&](uint16_t a, uint16_t b){
             return get_coord(points[a]) < get_coord(points[b]);
         });
 
         int window = 6; // hopefully enough to get a graph
-        for(int i = 0; i < n; i++){
-            for(int w = 1; w <= window && (i + w) < n; w++){
-                int u = idx[i];
-                int v = idx[i + w];
+        for(uint16_t i = 0; i < n; i++){
+            for(uint16_t w = 1; w <= window && (i + w) < n; w++){
+                uint16_t u = idx[i];
+                uint16_t v = idx[i + w];
 
                 uint64_t dx = static_cast<uint64_t>(points[u].x - points[v].x);
                 uint64_t dy = static_cast<uint64_t>(points[u].y - points[v].y);
                 uint64_t dz = static_cast<uint64_t>(points[u].z - points[v].z);
-                rough_edges.push_back({dx*dx + dy*dy + dz*dz, u, v});
+                rough_edges.emplace_back(PointPair{dx*dx + dy*dy + dz*dz, u, v});
             }
         }
     };
@@ -148,10 +148,10 @@ auto find_threshold(const std::vector<Point>& points){
     collect([](const Point& p){ return p.y; });
     collect([](const Point& p){ return p.z; });
 
+    radix_sort_pairs(rough_edges);
+
     // Erase duplicates
     rough_edges.erase(std::unique(rough_edges.begin(), rough_edges.end()), rough_edges.end());
-
-    radix_sort_pairs(rough_edges);
 
     // Kruskal to find mst on rough edges
     std::vector<int> parent(n);
@@ -197,14 +197,18 @@ auto parse_input(std::string input_file = ""){
 
     int n = input.size();
 
+    std::sort(input.begin(), input.end(), [](const Point& a, const Point& b) {
+        return a.x < b.x;
+    });
+
     uint64_t limit = find_threshold(input);
 
 
     std::vector<PointPair> pairs;
     pairs.reserve(n * 20); // rough estimate
-    for (int i = 0; i < n; ++i) {
+    for (uint16_t i = 0; i < n; ++i) {
         const auto& p1 = input[i];
-        for (int j = i + 1; j < n; ++j) {
+        for (uint16_t j = i + 1; j < n; ++j) {
             const auto& p2 = input[j];
 
             uint64_t dx = static_cast<uint64_t>(p1.x - p2.x);
@@ -214,7 +218,7 @@ auto parse_input(std::string input_file = ""){
             uint64_t d2 = dx*dx + dy*dy + dz*dz;
             if(d2 > limit) continue;
 
-            pairs.push_back({d2, i, j});
+            pairs.emplace_back(PointPair{d2, i, j});
         }
     }
 
@@ -230,51 +234,70 @@ auto p1(const auto& input_){
 
     const auto& [input, pairs] = input_;
 
-
     int n = input.size();
-    
 
     // Find the top k
     int k = input.size() == 1000 ? 1000 : 10;
 
-    std::vector<std::vector<int>> adj(n);
+
+    // Disjoint Set Union
+    // Groups are represented as trees
+    // Initially every element is its own tree
+    // When merging two groups, attach the smaller tree under the larger tree
+    //       by setting the root of the smaller tree to point to the root of the larger tree
+    // When finding whether two elements are in the same group
+    //     traverse up to the root of their trees, if the roots are the same, they are in the same group
+    std::vector<int> parent(n);
+    std::vector<int64_t> size(n, 1); // Track size of each component
+    std::iota(parent.begin(), parent.end(), 0); // parent[i] = i initially
+
+    // Find with Path Compression
+    // Path compression sets every node along the path to point directly to the root
+    // If you had A <-- B <--- C <--- D
+    // After find(D), it becomes A <-- B, A <--- C, A <--- D
+    // This means that if you later call find(C), it goes straight to A rather than through B
+    auto find = [&](int i) {
+        int root = i;
+        while (root != parent[root]) root = parent[root];
+        // Compression
+        while (i != root) {
+            int next = parent[i];
+            parent[i] = root;
+            i = next;
+        }
+        return root;
+    };
+
+    // Process the edges
     for (int i = 0; i < k; ++i) {
-        int u = pairs[i].p1_index;
-        int v = pairs[i].p2_index;
-        adj[u].push_back(v);
-        adj[v].push_back(u);
-    }
+        int rootU = find(pairs[i].p1_index);
+        int rootV = find(pairs[i].p2_index);
 
-    std::vector<bool> visited(n, false);
-    std::vector<int64_t> circuit_sizes;
-
-    for (int i = 0; i < n; ++i) {
-        if (!visited[i]) {
-            int64_t current_size = 0;
-            
-            std::vector<int> q;
-            q.push_back(i);
-            visited[i] = true;
-            
-            size_t head = 0;
-            while(head < q.size()){
-                int u = q[head++];
-                current_size++;
-
-                // Check all neighbors
-                for(int neighbor : adj[u]){
-                    if(!visited[neighbor]){
-                        visited[neighbor] = true;
-                        q.push_back(neighbor);
-                    }
-                }
+        if (rootU != rootV) {
+            // Merge the smaller tree into the larger one to keep tree flat
+            if (size[rootU] < size[rootV]) {
+                parent[rootU] = rootV;
+                size[rootV] += size[rootU];
+            } else {
+                parent[rootV] = rootU;
+                size[rootU] += size[rootV];
             }
-            circuit_sizes.push_back(current_size);
         }
     }
 
-    std::ranges::sort(circuit_sizes, std::greater<>());
+    // Collect all component sizes (only from the roots)
+    std::vector<int64_t> circuit_sizes;
+    circuit_sizes.reserve(n);
+    
+    for (int i = 0; i < n; ++i) {
+        // Only counting the roots
+        if (parent[i] == i) {
+            circuit_sizes.push_back(size[i]);
+        }
+    }
 
+    // Sort to find the largest 3
+    std::partial_sort(circuit_sizes.begin(), circuit_sizes.begin() + 3, circuit_sizes.end(), std::greater<>());
 
     return circuit_sizes[0] * circuit_sizes[1] * circuit_sizes[2];
 }
@@ -316,11 +339,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 4.340 ms
-[Timer] Part 1 (Global): 90.202 µs
+[Timer] Input Parsing (Global): 3.677 ms
+[Timer] Part 1 (Global): 25.230 µs
 Part 1: 57970
-[Timer] Part 2 (Global): 21.278 µs
+[Timer] Part 2 (Global): 12.613 µs
 Part 2: 8520040659
-[Timer] Total (Global): 4.505 ms
+[Timer] Total (Global): 3.763 ms
 
 */
