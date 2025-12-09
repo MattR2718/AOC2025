@@ -14,5 +14,6 @@ This repository contains my solutions for [Advent of Code 2025](https://adventof
 | 6     | ✅     | ✅     |
 | 7     | ✅     | ✅     |
 | 8     | ✅     | ✅     |
-| 9 - 12| ❌     | ❌     |
+| 9     | ✅     | ✅     |
+| 10 - 12| ❌     | ❌     |
 
