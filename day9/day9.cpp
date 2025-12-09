@@ -231,17 +231,14 @@ int main(int argc, char** argv){
 }
 
 
-// 4738679808 low
-// 4758121828
-// 2023317030
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 3.465 ms
-[Timer] Part 1 (Global): 16.379 µs
-Part 1: 57970
-[Timer] Part 2 (Global): 11.306 µs
-Part 2: 8520040659
-[Timer] Total (Global): 3.549 ms
+[Timer] Input Parsing (Global): 50.676 µs
+[Timer] Part 1 (Global): 30.827 µs
+Part 1: 4758121828
+[Timer] Part 2 (Global): 16.569 ms
+Part 2: 1577956170
+[Timer] Total (Global): 16.714 ms
 
 */
