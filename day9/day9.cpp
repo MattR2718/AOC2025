@@ -204,8 +204,10 @@ auto p2(const auto& input){
     int64_t max_area = -1;
 
     // Go through all pairs of points and check for a valid rectangle
-    for(const auto& p : input){
-        for(const auto& q : input){
+    for(const auto& i : std::views::iota(0u, input.size() - 1)){
+        for(const auto& j : std::views::iota(i, input.size())){
+            const auto& p = input[i];
+            const auto& q = input[j];
 
             Point bl{std::min(p.x, q.x), std::min(p.y, q.y)};
             Point tr{std::max(p.x, q.x), std::max(p.y, q.y)};
@@ -234,11 +236,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 50.676 µs
-[Timer] Part 1 (Global): 30.827 µs
+[Timer] Input Parsing (Global): 56.476 µs
+[Timer] Part 1 (Global): 30.771 µs
 Part 1: 4758121828
-[Timer] Part 2 (Global): 16.569 ms
+[Timer] Part 2 (Global): 8.874 ms
 Part 2: 1577956170
-[Timer] Total (Global): 16.714 ms
+[Timer] Total (Global): 9.018 ms
 
 */
