@@ -7,15 +7,24 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(day day10)
 
-find_package(Z3 CONFIG REQUIRED)
+include(FetchContent)
+
+FetchContent_Declare(
+    highs
+    GIT_REPOSITORY https://github.com/ERGO-Code/HiGHS.git
+)
+
+FetchContent_MakeAvailable(highs)
 
 add_executable(${day} ${day}.cpp)
 
 # Include directory (optional)
 target_include_directories(${day} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(${day} PRIVATE ctre::ctre z3::libz3)
+target_link_libraries(${day} PRIVATE ctre::ctre highs)
 
+get_target_property(HIGHS_INCLUDE_DIRS highs INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(day10 SYSTEM PRIVATE ${HIGHS_INCLUDE_DIRS})
 
 
 # Useful warnings

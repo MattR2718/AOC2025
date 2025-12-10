@@ -17,7 +17,7 @@
 #include <stack>
 
 
-#include <z3++.h>
+#include <Highs.h>
 #include <ctre.hpp>
 
 #include <timer.h>
@@ -127,47 +127,80 @@ auto p2(const auto& input){
 
     uint64_t p2 = 0;
 
+    Highs highs;
+
+    // No output printing
+    highs.setOptionValue("output_flag", false);
+
     for(const auto& machine : input){
-        z3::context c;
-        z3::optimize opt(c);
+        highs.clearModel();
 
-        std::vector<z3::expr> button_vars;
-        z3::expr total_presses = c.int_val(0);
+        int num_vars = machine.buttons.size();
+        int num_constraints = machine.joltage.size();
 
-        // Integer buttons representing how many times each button is pressed
-        for(const auto& button_idx : std::views::iota(0u, machine.buttons.size())){
-            std::string name = std::format("button_{}", button_idx);
-            z3::expr var = c.int_const(name.c_str());
+        // Columns represent buttons
+        // Each column is one button
+        std::vector<double> col_cost(num_vars, 1.0);
+        std::vector<double> col_lower(num_vars, 0.0);
+        std::vector<double> col_upper(num_vars, highs.getInfinity());
 
-            opt.add(var >= 0);
-            button_vars.push_back(var);
-            total_presses = total_presses + var;
+        // Rows represent joltage constraints
+        // Each row is one constraint
+        // Upper and lower bounds are equal to the joltage required
+        std::vector<double> row_lower(num_constraints);
+        std::vector<double> row_upper(num_constraints);
+        for(const auto& [i, val] : std::views::enumerate(machine.joltage)){
+            row_lower[i] = static_cast<double>(val);
+            row_upper[i] = static_cast<double>(val);
         }
 
-        // Constraints for the final joltage state
-        // Jolt at index is the sum of presses of buttons that toggle that jolt
-        for(const auto& jolt_idx : std::views::iota(0u, machine.joltage.size())){
-            z3::expr row_sum = c.int_val(0);
-            for(const auto& button_idx : std::views::iota(0u, machine.buttons.size())){
-                if(std::find(machine.buttons[button_idx].begin(), machine.buttons[button_idx].end(), jolt_idx) != machine.buttons[button_idx].end()){
-                    row_sum = row_sum + button_vars[button_idx];
-                }
+        // Matrix A represents which buttons affect which constraints
+        // A[i][j] = 1 if button j affects constraint i, else 0
+        std::vector<double> a_value;
+        std::vector<HighsInt> a_index;
+        std::vector<HighsInt> a_start(num_vars + 1, 0);
+
+        int curr_idx = 0;
+        for(int j = 0; j < num_vars; j++){
+            for(int row_idx : machine.buttons[j]){
+                a_index.push_back(static_cast<HighsInt>(row_idx));
+                a_value.push_back(1.0);
+                curr_idx++;
             }
-            opt.add(row_sum == c.int_val((int)machine.joltage[jolt_idx]));
+            a_start[j + 1] = static_cast<HighsInt>(curr_idx);
         }
 
-        opt.minimize(total_presses);
 
-        if(opt.check() == z3::sat){
-            z3::model m = opt.get_model();
-            uint64_t presses = 0;
-            for(const auto& button_idx : std::views::iota(0u, machine.buttons.size())){
-                std::string name = std::format("button_{}", button_idx);
-                z3::expr var = c.int_const(name.c_str());
-                presses += m.eval(var).get_numeral_uint64();
-            }
-            p2 += presses;
+        HighsLp lp;
+        lp.num_col_ = static_cast<HighsInt>(num_vars);
+        lp.num_row_ = static_cast<HighsInt>(num_constraints);
+        lp.col_cost_ = col_cost;
+        lp.col_lower_ = col_lower;
+        lp.col_upper_ = col_upper;
+        lp.row_lower_ = row_lower;
+        lp.row_upper_ = row_upper;
+        lp.a_matrix_.start_ = a_start;
+        lp.a_matrix_.index_ = a_index;
+        lp.a_matrix_.value_ = a_value;
+        lp.a_matrix_.format_ = MatrixFormat::kColwise;
+
+        // Enforce integer variables
+        lp.integrality_.resize(num_vars, HighsVarType::kInteger);
+
+        HighsStatus status = highs.passModel(lp);
+
+        if(status != HighsStatus::kOk){
+            std::cerr << "Error passing model to HiGHS\n";
+            continue;
         }
+
+        status = highs.run();
+        if(status == HighsStatus::kOk){
+
+            double min_presses = highs.getInfo().objective_function_value;;
+            p2 += static_cast<uint64_t>(std::round(min_presses));
+        }
+
     }
 
     return p2;
@@ -184,11 +217,11 @@ int main(int argc, char** argv){
 /*
 
 Using embedded input
-[Timer] Input Parsing (Global): 990.384 µs
-[Timer] Part 1 (Global): 3.348 ms
+[Timer] Input Parsing (Global): 253.346 µs
+[Timer] Part 1 (Global): 3.722 ms
 Part 1: 401
-[Timer] Part 2 (Global): 336.051 ms
+[Timer] Part 2 (Global): 221.917 ms
 Part 2: 15017
-[Timer] Total (Global): 340.551 ms
+[Timer] Total (Global): 226.096 ms
 
 */
