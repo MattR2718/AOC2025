@@ -187,8 +187,8 @@ auto backtrack(std::size_t idx, std::vector<std::vector<char>>& grid, const Regi
         int pres_height = pres.shape.size();
         int pres_width = pres.shape[0].size();
 
-        for(int r = 0; r <= region.height - pres_height; ++r){
-            for(int c = 0; c <= region.width - pres_width; ++c){
+        for(int r = 0; r <= region.height - pres_height; r++){
+            for(int c = 0; c <= region.width - pres_width; c++){
                 if(stamp_present(grid, pres, r, c)){
                     if(backtrack(idx + 1, grid, region, presents)){
                         return true;
